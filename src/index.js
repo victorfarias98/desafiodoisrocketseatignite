@@ -1,28 +1,66 @@
 const express = require('express');
 const cors = require('cors');
-
 const { v4: uuidv4, validate } = require('uuid');
 
 const app = express();
+const users = [];
+
 app.use(express.json());
 app.use(cors());
 
-const users = [];
-
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers
+  const user = users.find((user) => user.username === username)
+  if(user) {
+    request.user = user
+    next()
+  }
+  else {
+    return response.status(404)
+  }
 }
-
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request
+  if(user.pro === false && user.todos.length < 10 || user.pro === true ) {
+    next()
+  }
+  else {
+    return response.status(403)
+  }
 }
-
 function checksTodoExists(request, response, next) {
-  // Complete aqui
-}
+  const { username } = request.headers;
+  const { id } = request.params;
 
+  const user = users.find(user => user.username === username);
+
+  if (!user) {
+    return response.status(404).json({ error: 'User not found!' });
+  }
+
+  if (!validate(id, 4)) {
+    return response.status(400).json({ error: 'Id is not a uuid' });
+  }
+
+  const todo = user.todos.find(todoId => todoId.id === id);
+
+  if (!todo) {
+    return response.status(404).json({ error: 'Invalid Id' });
+  }
+
+  request.todo = todo;
+  request.user = user;
+
+  return next();
+}
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params
+  const user = users.find((user) => user.id === id)
+  if(user) {
+    request.user = user
+    next()
+  }
+  response.status(404)
 }
 
 app.post('/users', (request, response) => {
